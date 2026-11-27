@@ -24,7 +24,7 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
-    private static final String SITE_URL = "https://www.autismit.ie";
+    private static final String SITE_URL = "https://www.autismit.ie/play/index.php";
     private static final String SITE_DOMAIN = "autismit.ie";
 
     private WebView webView;
