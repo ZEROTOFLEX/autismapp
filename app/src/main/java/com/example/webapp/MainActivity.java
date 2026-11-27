@@ -18,7 +18,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
 
     private WebView webView;
-    private static final String SITE_URL = "https://www.autismit.ie";
+    private static final String SITE_URL = "https://www.autismit.ie/play/index.php";
     private static final String SITE_DOMAIN = "autismit.ie";
 
     private boolean isOurHost(String host) {
@@ -47,12 +47,21 @@ public class MainActivity extends Activity {
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
 
-        // Any file download (such as the APK) is handed to the phone's browser
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition,
                                         String mimetype, long contentLength) {
-                openOutside(Uri.parse(url));
+                String lower = url.toLowerCase();
+                if (lower.contains(".apk")) {
+                    openOutside(Uri.parse(url));
+                } else {
+                    // Show what the server sent so we can fix it
+                    showError(webView, "The website sent a file instead of a page.<br><br>"
+                            + "<b>Address:</b> " + url + "<br><br>"
+                            + "<b>Type:</b> " + mimetype + "<br><br>"
+                            + "<b>Header:</b> " + contentDisposition + "<br><br>"
+                            + "<b>Size:</b> " + contentLength);
+                }
             }
         });
 
@@ -68,9 +77,9 @@ public class MainActivity extends Activity {
                 boolean stayInApp = webLink && isOurHost(uri.getHost()) && !path.endsWith(".apk");
 
                 if (stayInApp) {
-                    return false; // load inside the app
+                    return false;
                 }
-                openOutside(uri); // mailto:, tel:, other websites and the APK open outside
+                openOutside(uri);
                 return true;
             }
 
@@ -85,7 +94,7 @@ public class MainActivity extends Activity {
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
                 String host = Uri.parse(error.getUrl()).getHost();
                 if (isOurHost(host)) {
-                    handler.proceed(); // temporary: remove once the website certificate chain is fixed
+                    handler.proceed();
                 } else {
                     handler.cancel();
                     showError(view, "Secure connection problem (SSL error " + error.getPrimaryError() + ")");
@@ -101,9 +110,8 @@ public class MainActivity extends Activity {
     }
 
     private void showError(WebView view, String message) {
-        String html = "<html><body style='font-family:sans-serif;padding:24px;background:#fff;color:#17283d'>"
-                + "<h2>Autism-IT</h2><p>" + message + "</p>"
-                + "<p>Check your internet connection, then close and reopen the app.</p></body></html>";
+        String html = "<html><body style='font-family:sans-serif;padding:24px;background:#fff;color:#17283d;word-wrap:break-word'>"
+                + "<h2>Autism-IT</h2><p>" + message + "</p></body></html>";
         view.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
     }
 
