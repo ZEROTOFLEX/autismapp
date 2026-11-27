@@ -10,8 +10,10 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.SslErrorHandler;
+import android.webkit.ValueCallback;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -23,7 +25,7 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
-    private static final String VERSION = "Autism-IT app v5";
+    private static final String VERSION = "Autism-IT app v6";
     private static final String SITE_URL = "https://www.autismit.ie";
     private static final String SITE_DOMAIN = "autismit.ie";
 
@@ -56,7 +58,7 @@ public class MainActivity extends Activity {
 
         status = new TextView(this);
         status.setTextColor(Color.parseColor("#17283d"));
-        status.setTextSize(18);
+        status.setTextSize(15);
         status.setGravity(Gravity.TOP);
         status.setPadding(48, 140, 48, 48);
         status.setText(VERSION + "\n\nLoading " + SITE_URL + " ...");
@@ -65,17 +67,21 @@ public class MainActivity extends Activity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.TRANSPARENT);
-        webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         setContentView(root);
+
+        CookieManager cookies = CookieManager.getInstance();
+        cookies.setAcceptCookie(true);
+        cookies.setAcceptThirdPartyCookies(webView, true);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
+        settings.setUserAgentString(settings.getUserAgentString().replace("; wv", ""));
 
         webView.setDownloadListener(new DownloadListener() {
             @Override
@@ -86,8 +92,7 @@ public class MainActivity extends Activity {
                 } else {
                     setStatus("The website sent a file instead of a page.\n\n"
                             + "Address: " + url + "\n\n"
-                            + "Type: " + mimetype + "\n\n"
-                            + "Header: " + contentDisposition, true);
+                            + "Type: " + mimetype, true);
                 }
             }
         });
@@ -117,8 +122,18 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                status.setText(VERSION + "\n\nPage finished loading:\n" + url
-                        + "\n\nIf you can read this, the page is blank.");
+                CookieManager.getInstance().flush();
+                final String shownUrl = url;
+                view.evaluateJavascript(
+                        "(function(){var h=document.documentElement.outerHTML;"
+                                + "return 'Title: '+document.title+'\\nHTML length: '+h.length+'\\n\\n'+h.substring(0,500);})()",
+                        new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String value) {
+                                status.setText(VERSION + "\n\nPage finished:\n" + shownUrl
+                                        + "\n\nWhat the page contains:\n" + value);
+                            }
+                        });
             }
 
             @Override
