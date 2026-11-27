@@ -2,6 +2,7 @@ package com.example.webapp;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.webkit.SslErrorHandler;
@@ -40,8 +41,13 @@ public class MainActivity extends Activity {
 
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                handler.cancel();
-                showError(view, "Secure connection problem (SSL error " + error.getPrimaryError() + ")");
+                String host = Uri.parse(error.getUrl()).getHost();
+                if (host != null && (host.equals("autismit.ie") || host.endsWith(".autismit.ie"))) {
+                    handler.proceed();
+                } else {
+                    handler.cancel();
+                    showError(view, "Secure connection problem (SSL error " + error.getPrimaryError() + ")");
+                }
             }
         });
 
